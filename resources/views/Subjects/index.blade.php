@@ -8,12 +8,16 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">My Subjects List</h1>
 
-    @auth
+    @can('create', App\Models\Subject::class)
         <a href="{{ route('subjects.create') }}" class="btn btn-primary">
             + Add Subject
         </a>
-    @endauth
+    @endcan
 </div>
+
+@cannot('create', App\Models\Subject::class)
+    <p class="text-muted small">You are viewing this list in read-only mode.</p>
+@endcannot
 
 {{-- Search and Filter Form --}}
 <form method="GET" action="{{ route('subjects.index') }}" class="mb-4">
@@ -100,9 +104,9 @@
             <th>Units</th>
             <th>Prerequisite</th>
 
-            @auth
+            @can('create', App\Models\Subject::class)
                 <th>Actions</th>
-            @endauth
+            @endcan
         </tr>
     </thead>
 
@@ -130,26 +134,30 @@
 
                 <td>{{ $subj->prerequisite->name ?? 'None' }}</td>
 
-                @auth
+                @can('create', App\Models\Subject::class)
                     <td>
-                        <a href="{{ route('subjects.edit', $subj) }}"
-                           class="btn btn-primary btn-sm">
-                            Edit
-                        </a>
+                        @can('update', $subj)
+                            <a href="{{ route('subjects.edit', $subj) }}"
+                               class="btn btn-primary btn-sm">
+                                Edit
+                            </a>
+                        @endcan
 
-                        <form action="{{ route('subjects.destroy', $subj) }}"
-                              method="POST"
-                              class="d-inline"
-                              onsubmit="return confirm('Delete this record?')">
-                            @csrf
-                            @method('DELETE')
+                        @can('delete', $subj)
+                            <form action="{{ route('subjects.destroy', $subj) }}"
+                                  method="POST"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Delete this record?')">
+                                @csrf
+                                @method('DELETE')
 
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                Delete
-                            </button>
-                        </form>
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    Delete
+                                </button>
+                            </form>
+                        @endcan
                     </td>
-                @endauth
+                @endcan
             </tr>
 
         @empty

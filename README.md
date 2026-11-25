@@ -1,17 +1,17 @@
-F1. Authentication and Authorisation
-    This lesson taught me how to register, log in, and log out users in my LibSys Portal project using Laravel authentication. Authorisation, or controlling what authenticated users are allowed to do, will be covered further in the next meeting.
+## 1. Authentication and Authorization
+    Last week, my project answered the question, **“Who are you?”** through registration, login, logout, and authentication. This week, it answered **“What are you allowed to do?”** through `SubjectPolicy`, which controls who can create, update, and delete subjects. The policy answers the second question, while `routes/web.php` defines the routes and authentication middleware for the first.
 
-F2. Why does a successful login call session()->regenerate()?
-    After a successful login, my LibSys Portal regenerates the session ID to protect the application against session fixation attacks. If I skip this step, an attacker may be able to reuse a session ID that was known before the user logged in.
+## 2. Why `role` Is Not in `$fillable`
+    The `role` column is not included in the `$fillable` array in `app/Models/User.php` because I do not want users to assign their own roles through mass assignment. I was still able to set `$user->role = 'admin'` and call `$user->save()` in Tinker because direct property assignment and saving are not blocked by `$fillable`. The `$fillable` property protects against unwanted mass assignment of fields, such as a user submitting `role=admin` through a registration form.
 
-F3. Why does a failed login use the same message for a wrong password and an unknown email?
-    My login page uses the same error message for both cases to prevent strangers from discovering which email addresses are registered in the system. This helps protect the privacy and security of LibSys Portal accounts.
+## 3. 403 Forbidden vs. Login Page
+    When a signed-in regular user visits `/subjects/create`, `Gate::authorize('create', Subject::class)` in `SubjectsController` checks the `SubjectPolicy` and returns a 403 Forbidden response because the user is not an admin. When a guest visits the same address, the `auth` middleware on the route redirects the guest to the login page because authentication is required first. These responses are deliberately different because a guest needs to sign in, while an authenticated non-admin is already identified but does not have permission.
 
-F4. Why do index and show stay public while create/edit/update/destroy use auth?
-    The subjects list and subject detail pages are public so visitors can browse the available subjects without logging in. Creating, editing, updating, and deleting subjects require authentication because these actions change the project's data.
+## 4. Public List and Detail Pages
+    My `subjects.index` and `subjects.show` routes remain accessible to everyone because the `viewAny` and `view` methods in `SubjectPolicy` return `true`. I made this decision so guests and regular users can still browse subject records, including their codes, titles, units, and prerequisites, without having permission to modify them.
 
-F5. Why is hiding Add and actions not enough to secure those actions?
-    Hiding the Add, Edit, and Delete buttons only changes what guests can see on the page; it does not prevent them from accessing the URLs directly. The auth middleware protects these routes by redirecting users who are not logged in to the login page.
+## 5. Why Use a Policy?
+    My `SubjectsController` uses `Gate::authorize()` to enforce permissions, while `resources/views/subjects/index.blade.php` uses `@can` and `@cannot` to show or hide the Add, Edit, and Delete controls. If I wrote the role checks separately in both places, their rules could become inconsistent when I update one but forget the other. Using `SubjectPolicy` gives the controller and the view one shared source of authorization rules.
 
-F6. Why does auth middleware care that the route is named exactly login?
-    Laravel's auth middleware uses the route named login when redirecting unauthenticated visitors to the login page. If I rename that route to signin, Laravel cannot find the expected login route and displays a Route [login] not defined error.
+## 6. Session Lifetime
+    My `.env` file uses `SESSION_LIFETIME=120`, which counts the minutes of session inactivity before the session expires; it does not count the total time a user spends logged in. There was no warning because Laravel expires the session on the server, and I did not implement a browser countdown or advance notification. When the expired user visits a protected route, the authentication middleware redirects them to the login page.

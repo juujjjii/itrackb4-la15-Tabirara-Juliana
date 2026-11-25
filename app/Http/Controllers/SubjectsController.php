@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Prerequisite;
 use App\Models\Subject;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+
 
 class SubjectsController extends Controller
 {
@@ -61,30 +63,34 @@ class SubjectsController extends Controller
 
     public function create()
     {
-        $prerequisites = Prerequisite::all();
-        return view('subjects.create', compact('prerequisites'));
+    Gate::authorize('create', Subject::class);
+
+    $prerequisites = Prerequisite::all();
+    return view('subjects.create', compact('prerequisites'));
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'code'            => 'required|string|max:20',
-            'title'           => 'required|string|max:100',
-            'units'           => 'required|in:1,2,3',
-            'prerequisite_id' => 'required|exists:prerequisites,id',
-        ]);
+{
+    Gate::authorize('create', Subject::class);
 
-        $subject = Subject::create($validated);
- 
-        Log::info('Subject saved', [
-            'id'   => $subject->id,
-            'code' => $subject->code,
-        ]);
- 
-        return redirect()
-            ->route('subjects.index')
-            ->with('success', 'Subject added successfully.');
-    }
+    $validated = $request->validate([
+        'code'            => 'required|string|max:20',
+        'title'           => 'required|string|max:100',
+        'units'           => 'required|in:1,2,3',
+        'prerequisite_id' => 'required|exists:prerequisites,id',
+    ]);
+
+    $subject = Subject::create($validated);
+
+    Log::info('Subject saved', [
+        'id'   => $subject->id,
+        'code' => $subject->code,
+    ]);
+
+    return redirect()
+        ->route('subjects.index')
+        ->with('success', 'Subject added successfully.');
+}
 
     public function show(Subject $subject)
     {
@@ -93,35 +99,41 @@ class SubjectsController extends Controller
 
     public function edit(Subject $subject)
     {
-        $prerequisites = Prerequisite::all();
-        return view('subjects.edit', compact('subject', 'prerequisites'));
+    Gate::authorize('update', $subject);
+
+    $prerequisites = Prerequisite::all();
+    return view('subjects.edit', compact('subject', 'prerequisites'));
     }
 
     public function update(Request $request, Subject $subject)
     {
-        $validated = $request->validate([
-            'code'            => 'required|string|max:20',
-            'title'           => 'required|string|max:100',
-            'units'           => 'required|in:1,2,3',
-            'prerequisite_id' => 'required|exists:prerequisites,id',
-        ]);
+    Gate::authorize('update', $subject);
 
-        $subject->update($validated);
+    $validated = $request->validate([
+        'code'            => 'required|string|max:20',
+        'title'           => 'required|string|max:100',
+        'units'           => 'required|in:1,2,3',
+        'prerequisite_id' => 'required|exists:prerequisites,id',
+    ]);
 
-        return redirect()
-            ->route('subjects.index')
-            ->with('success', 'Subject updated successfully.');
+    $subject->update($validated);
+
+    return redirect()
+        ->route('subjects.index')
+        ->with('success', 'Subject updated successfully.');
     }
 
     public function destroy(Subject $subject)
     {
-        abort_if($subject->prerequisite->subjects()->count() === 1, 403);
+    Gate::authorize('delete', $subject);
 
-        $subject->delete();
+    abort_if($subject->prerequisite->subjects()->count() === 1, 403);
 
-        return redirect()
-            ->route('subjects.index')
-            ->with('success', 'Subject deleted successfully.');
+    $subject->delete();
+
+    return redirect()
+        ->route('subjects.index')
+        ->with('success', 'Subject deleted successfully.');
     }
 
     public function featured()
